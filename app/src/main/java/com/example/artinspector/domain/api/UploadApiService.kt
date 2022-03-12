@@ -1,5 +1,6 @@
 package com.example.artinspector.domain.api
 
+import com.example.artinspector.domain.models.PredictionResponse
 import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Multipart
@@ -12,5 +13,5 @@ interface UploadApiService {
     @POST("predict")
     suspend fun uploadImage(
         @Part image: MultipartBody.Part
-    ) : Response<Any>
+    ) : Response<PredictionResponse>
 }
