@@ -10,6 +10,7 @@ import com.example.artinspector.utils.DispatcherProviders
 import com.example.artinspector.utils.Injector
 import com.example.artinspector.utils.ResultState
 import com.example.artinspector.utils.performIfInstanceOf
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -26,6 +27,7 @@ class UploadViewModel(
         _uploadImageState.postValue(ResultState.Loading)
         withContext(dispatchers.io) {
             val result = repo.uploadImageForPrediction(file)
+            delay(1000)
             _uploadImageState.postValue(result)
         }
     }
