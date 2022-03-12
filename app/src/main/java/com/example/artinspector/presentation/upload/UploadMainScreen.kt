@@ -9,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -22,16 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.artinspector.R
 import com.example.artinspector.domain.models.PredictionResponse
 import com.example.artinspector.presentation.components.BitmapAndPlaceholderImage
+import com.example.artinspector.presentation.components.MovingImageOverComposable
 import com.example.artinspector.utils.ResultState
 import com.example.artinspector.utils.performIfInstanceOf
 import com.example.artinspector.viewmodels.upload.UploadViewModel
@@ -81,7 +79,7 @@ fun UploadMainScreen(
 
     uploadState.value.performIfInstanceOf<ResultState.Success<PredictionResponse>> {
         LaunchedEffect(key1 = this.data) {
-            Toast.makeText(context, this@performIfInstanceOf.data.predictionResult, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, this@performIfInstanceOf.data.predictionResult.toString(), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -104,17 +102,22 @@ fun UploadMainScreen(
 
         val shape = RoundedCornerShape(8.dp)
 
-        BitmapAndPlaceholderImage(
-            bitmap = pickedImageBitmap,
-            placeholderRes = R.drawable.ic_upload,
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .aspectRatio(0.8f)
-                .clip(shape)
-                .border(BorderStroke(2.dp, Color.Black), shape)
-                .background(Color.LightGray, shape),
-            placeholderContentScale = ContentScale.Fit
-        )
+        MovingImageOverComposable(
+            movingImageRes = R.drawable.ic_searching,
+            shouldStartAnimating = uploadState.value is ResultState.Loading
+        ) {
+            BitmapAndPlaceholderImage(
+                bitmap = pickedImageBitmap,
+                placeholderRes = R.drawable.ic_upload,
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .aspectRatio(0.8f)
+                    .clip(shape)
+                    .border(BorderStroke(2.dp, Color.Black), shape)
+                    .background(Color.LightGray, shape),
+                placeholderContentScale = ContentScale.Fit
+            )
+        }
 
         Spacer(modifier = Modifier.height(50.dp))
 
@@ -128,6 +131,7 @@ fun UploadMainScreen(
     }
 
 }
+
 
 @Preview(showSystemUi = true)
 @Composable
