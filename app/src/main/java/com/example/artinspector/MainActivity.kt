@@ -12,6 +12,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.artinspector.domain.models.PredictionResponse
+import com.example.artinspector.presentation.navigation.NavigationHelper.uploadScreenRoute
 import com.example.artinspector.presentation.upload.UploadMainScreen
 import com.example.artinspector.ui.theme.ArtInspectorTheme
 import kotlinx.coroutines.Dispatchers
@@ -27,11 +32,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             ArtInspectorTheme {
                 // A surface container using the 'background' color from the theme
-                Surface(modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colors.background) {
-                    UploadMainScreen(
-                        getFileFromContentUri = this::getFileFromContentUri
-                    )
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colors.background) {
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = uploadScreenRoute) {
+                        composable(route = uploadScreenRoute) {
+                            UploadMainScreen(
+                                getFileFromContentUri = this@MainActivity::getFileFromContentUri,
+                                onProcessImageResult = { response: PredictionResponse, imageFile: File? ->
+
+                                }
+                            )
+                        }
+
+                    }
                 }
             }
         }

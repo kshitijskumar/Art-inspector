@@ -39,6 +39,7 @@ import java.io.File
 @Composable
 fun UploadMainScreen(
     getFileFromContentUri: suspend (Uri) -> File? = { null },
+    onProcessImageResult: (PredictionResponse, File?) -> Unit = { _, _ -> },
     uploadVm: UploadViewModel = viewModel(),
 ) {
 
