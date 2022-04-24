@@ -1,5 +1,7 @@
 package com.example.artinspector.viewmodels.upload
 
+import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -9,8 +11,8 @@ import com.example.artinspector.domain.repositories.upload.UploadImageRepository
 import com.example.artinspector.utils.DispatcherProviders
 import com.example.artinspector.utils.Injector
 import com.example.artinspector.utils.ResultState
-import com.example.artinspector.utils.performIfInstanceOf
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -20,25 +22,65 @@ class UploadViewModel(
     private val dispatchers: DispatcherProviders = Injector.dispatchers
 ) : ViewModel() {
 
-    private val _uploadImageState = MutableLiveData<ResultState<PredictionResponse>>()
-    val uploadImageState: LiveData<ResultState<PredictionResponse>> get() = _uploadImageState
+    private val _uiState = MutableStateFlow<UploadViewState>(UploadViewState())
+    val uiState: StateFlow<UploadViewState> get() = _uiState
 
-    fun uploadImageForPrediction(file: File) = viewModelScope.launch {
-        _uploadImageState.postValue(ResultState.Loading)
+    private val _effects = MutableSharedFlow<UploadFlowSideEffects>()
+    val effects = _effects.asSharedFlow()
+
+    fun handleIntent(intent: UploadFlowIntent) {
+        when(intent) {
+            is UploadFlowIntent.UploadImage -> {
+                uploadImageForPrediction(intent.file)
+            }
+            is UploadFlowIntent.UploadImageUriFromGallery -> {
+                emitGetBitmapSideEffect(intent.uri)
+            }
+            is UploadFlowIntent.UploadImageBitmap -> {
+                updateUploadImageBitmap(intent.bitmap)
+            }
+        }
+    }
+
+    private fun uploadImageForPrediction(file: File) = viewModelScope.launch {
+        _uiState.update { it.copy(isLoading = true) }
         withContext(dispatchers.io) {
             val result = repo.uploadImageForPrediction(file)
             delay(1000)
-            _uploadImageState.postValue(result)
+            when(result) {
+                is ResultState.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            similarImagesResult = result.data,
+                            isLoading = false
+                        )
+                    }
+                    _effects.emit(
+                        UploadFlowSideEffects.NavigateToResultScreen(
+                            data = result.data,
+                            imageBitmap = uiState.value.pickedImageBitmap
+                        )
+                    )
+                }
+                is ResultState.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            similarImagesResult = null,
+                            pickedImageBitmap = null
+                        )
+                    }
+                    _effects.emit(UploadFlowSideEffects.ShowErrorToast(result.errorMsg))
+                }
+            }
         }
     }
 
-    fun updateUiForStateRequest(req: UiStateRequest) {
-        if (req == UiStateRequest.Loading) {
-            _uploadImageState.postValue(ResultState.Loading)
-        }
+    private fun updateUploadImageBitmap(bitmap: Bitmap?) {
+        _uiState.update { it.copy(pickedImageBitmap = bitmap) }
     }
 
-    enum class UiStateRequest {
-        Loading, Success, Error
+    private fun emitGetBitmapSideEffect(uri: Uri?) = viewModelScope.launch {
+        _effects.emit(UploadFlowSideEffects.GetImageBitmapFromUri(uri))
     }
 }

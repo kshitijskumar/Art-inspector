@@ -1,10 +1,10 @@
 package com.example.artinspector.presentation.upload
 
-import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,9 +32,10 @@ import com.example.artinspector.R
 import com.example.artinspector.domain.models.PredictionResponse
 import com.example.artinspector.presentation.components.BitmapAndPlaceholderImage
 import com.example.artinspector.presentation.components.MovingImageOverComposable
-import com.example.artinspector.utils.ResultState
-import com.example.artinspector.utils.performIfInstanceOf
+import com.example.artinspector.viewmodels.upload.UploadFlowIntent
+import com.example.artinspector.viewmodels.upload.UploadFlowSideEffects
 import com.example.artinspector.viewmodels.upload.UploadViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -46,54 +49,48 @@ fun UploadMainScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var pickedImageUri by remember {
-        mutableStateOf<Uri?>(null)
-    }
-
-    var pickedImageBitmap by remember {
-        mutableStateOf<Bitmap?>(null)
-    }
-
     val imageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) {
         it?.let { imageUri ->
-            pickedImageUri = imageUri
-            uploadVm.updateUiForStateRequest(UploadViewModel.UiStateRequest.Loading)
+            uploadVm.handleIntent(UploadFlowIntent.UploadImageUriFromGallery(imageUri))
             scope.launch {
                 val file = getFileFromContentUri(imageUri) ?: return@launch
-                uploadVm.uploadImageForPrediction(file = file)
+                uploadVm.handleIntent(UploadFlowIntent.UploadImage(file))
             }
         }
     }
     // state
-    val uploadState = uploadVm.uploadImageState.observeAsState()
+    val uploadState = uploadVm.uiState.collectAsState()
 
-    // error toast
-    uploadState.value.performIfInstanceOf<ResultState.Error> {
-        val errorMsg = this.errorMsg
-        LaunchedEffect(key1 = this.errorMsg) {
-            pickedImageUri = null
-            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+    LaunchedEffect(key1 = Unit) {
+        scope.launch {
+            uploadVm.effects.collectLatest {
+                when(it) {
+                    is UploadFlowSideEffects.ShowErrorToast -> {
+                        Toast.makeText(context, it.errorMsg, Toast.LENGTH_SHORT).show()
+                    }
+                    is UploadFlowSideEffects.NavigateToResultScreen -> {
+                        Toast.makeText(context, "navigate", Toast.LENGTH_SHORT).show()
+                        Log.d("NavigateTime", "with data: ${it.data} and bitmap: ${it.imageBitmap}")
+                    }
+                    is UploadFlowSideEffects.GetImageBitmapFromUri -> {
+                        it.uri?.let {
+                            val pickedImageBitmap = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                                MediaStore.Images
+                                    .Media.getBitmap(context.contentResolver, it)
+                            } else {
+                                val source = ImageDecoder
+                                    .createSource(context.contentResolver, it)
+                                ImageDecoder.decodeBitmap(source)
+                            }
+                            uploadVm.handleIntent(UploadFlowIntent.UploadImageBitmap(pickedImageBitmap))
+                        } ?: run { uploadVm.handleIntent(UploadFlowIntent.UploadImageBitmap(null)) }
+                    }
+                }
+            }
         }
     }
-
-    uploadState.value.performIfInstanceOf<ResultState.Success<PredictionResponse>> {
-        LaunchedEffect(key1 = this.data) {
-            Toast.makeText(context, this@performIfInstanceOf.data.predictionResult.toString(), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    pickedImageUri?.let {
-        pickedImageBitmap = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-            MediaStore.Images
-                .Media.getBitmap(context.contentResolver, it)
-        } else {
-            val source = ImageDecoder
-                .createSource(context.contentResolver, it)
-            ImageDecoder.decodeBitmap(source)
-        }
-    } ?: run { pickedImageBitmap = null }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -105,10 +102,10 @@ fun UploadMainScreen(
 
         MovingImageOverComposable(
             movingImageRes = R.drawable.ic_searching,
-            shouldStartAnimating = uploadState.value is ResultState.Loading
+            shouldStartAnimating = uploadState.value.isLoading
         ) {
             BitmapAndPlaceholderImage(
-                bitmap = pickedImageBitmap,
+                bitmap = uploadState.value.pickedImageBitmap,
                 placeholderRes = R.drawable.ic_upload,
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
@@ -122,7 +119,7 @@ fun UploadMainScreen(
 
         Spacer(modifier = Modifier.height(50.dp))
 
-        if (uploadState.value != ResultState.Loading) {
+        if (uploadState.value.shouldShowUploadImageButton) {
             Button(onClick = {
                 imageLauncher.launch("image/*")
             }) {
