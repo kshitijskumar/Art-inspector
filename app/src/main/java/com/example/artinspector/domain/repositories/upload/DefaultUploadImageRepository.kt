@@ -1,14 +1,10 @@
 package com.example.artinspector.domain.repositories.upload
 
-import android.util.Log
 import com.example.artinspector.domain.api.UploadApiService
 import com.example.artinspector.domain.models.PredictionResponse
-import com.example.artinspector.utils.DispatcherProviders
 import com.example.artinspector.utils.Injector
 import com.example.artinspector.utils.ResultState
 import com.example.artinspector.utils.safeApiCall
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody

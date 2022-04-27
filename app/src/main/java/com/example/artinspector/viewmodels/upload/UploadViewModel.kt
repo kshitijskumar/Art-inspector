@@ -2,17 +2,18 @@ package com.example.artinspector.viewmodels.upload
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.artinspector.domain.models.PredictionResponse
 import com.example.artinspector.domain.repositories.upload.UploadImageRepository
 import com.example.artinspector.utils.DispatcherProviders
 import com.example.artinspector.utils.Injector
 import com.example.artinspector.utils.ResultState
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -25,8 +26,8 @@ class UploadViewModel(
     private val _uiState = MutableStateFlow<UploadViewState>(UploadViewState())
     val uiState: StateFlow<UploadViewState> get() = _uiState
 
-    private val _effects = MutableSharedFlow<UploadFlowSideEffects>()
-    val effects = _effects.asSharedFlow()
+    private val _effects = Channel<UploadFlowSideEffects>(Channel.BUFFERED)
+    val effects = _effects.receiveAsFlow()
 
     fun handleIntent(intent: UploadFlowIntent) {
         when(intent) {
@@ -55,7 +56,7 @@ class UploadViewModel(
                             isLoading = false
                         )
                     }
-                    _effects.emit(
+                    _effects.trySend(
                         UploadFlowSideEffects.NavigateToResultScreen(
                             data = result.data,
                             imageBitmap = uiState.value.pickedImageBitmap
@@ -70,7 +71,7 @@ class UploadViewModel(
                             pickedImageBitmap = null
                         )
                     }
-                    _effects.emit(UploadFlowSideEffects.ShowErrorToast(result.errorMsg))
+                    _effects.trySend(UploadFlowSideEffects.ShowErrorToast(result.errorMsg))
                 }
             }
         }
@@ -81,6 +82,6 @@ class UploadViewModel(
     }
 
     private fun emitGetBitmapSideEffect(uri: Uri?) = viewModelScope.launch {
-        _effects.emit(UploadFlowSideEffects.GetImageBitmapFromUri(uri))
+        _effects.trySend(UploadFlowSideEffects.GetImageBitmapFromUri(uri))
     }
 }

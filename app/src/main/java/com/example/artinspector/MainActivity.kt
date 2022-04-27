@@ -15,10 +15,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.artinspector.domain.models.PredictionResponse
+import com.example.artinspector.presentation.navigation.NavigationHelper.getNamedNAvArgumentsListForResultScreen
+import com.example.artinspector.presentation.navigation.NavigationHelper.getUpdatedPathToNavigateToResultScreen
+import com.example.artinspector.presentation.navigation.NavigationHelper.resultScreenRoute
 import com.example.artinspector.presentation.navigation.NavigationHelper.uploadScreenRoute
+import com.example.artinspector.presentation.result.ResultMainScreen
+import com.example.artinspector.presentation.result.ResultScreenUiModel
 import com.example.artinspector.presentation.upload.UploadMainScreen
 import com.example.artinspector.ui.theme.ArtInspectorTheme
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -38,9 +43,23 @@ class MainActivity : ComponentActivity() {
                         composable(route = uploadScreenRoute) {
                             UploadMainScreen(
                                 getFileFromContentUri = this@MainActivity::getFileFromContentUri,
-                                onProcessImageResult = { response: PredictionResponse, imageFile: File? ->
-
+                                onProcessImageResult = { resultUiModel ->
+                                    Log.d("ResultScreen", "model: $resultUiModel")
+                                    navController.navigate(getUpdatedPathToNavigateToResultScreen(resultUiModel))
                                 }
+                            )
+                        }
+
+                        composable(
+                            route = resultScreenRoute,
+                            arguments = getNamedNAvArgumentsListForResultScreen()
+                        ) {
+                            val resultModelString = it.arguments?.getString("result-data") ?: return@composable
+                            val resultModel = Gson().fromJson(resultModelString, ResultScreenUiModel::class.java)
+                            Log.d("ResultScreen", "model received: $resultModel")
+
+                            ResultMainScreen(
+                                resultScreenUiModel = resultModel
                             )
                         }
 

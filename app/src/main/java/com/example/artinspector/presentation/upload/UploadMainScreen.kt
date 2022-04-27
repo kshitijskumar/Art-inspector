@@ -29,9 +29,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.artinspector.R
-import com.example.artinspector.domain.models.PredictionResponse
 import com.example.artinspector.presentation.components.BitmapAndPlaceholderImage
 import com.example.artinspector.presentation.components.MovingImageOverComposable
+import com.example.artinspector.presentation.result.ResultScreenUiModel
 import com.example.artinspector.viewmodels.upload.UploadFlowIntent
 import com.example.artinspector.viewmodels.upload.UploadFlowSideEffects
 import com.example.artinspector.viewmodels.upload.UploadViewModel
@@ -42,7 +42,7 @@ import java.io.File
 @Composable
 fun UploadMainScreen(
     getFileFromContentUri: suspend (Uri) -> File? = { null },
-    onProcessImageResult: (PredictionResponse, File?) -> Unit = { _, _ -> },
+    onProcessImageResult: (ResultScreenUiModel) -> Unit = {  },
     uploadVm: UploadViewModel = viewModel(),
 ) {
 
@@ -73,6 +73,8 @@ fun UploadMainScreen(
                     is UploadFlowSideEffects.NavigateToResultScreen -> {
                         Toast.makeText(context, "navigate", Toast.LENGTH_SHORT).show()
                         Log.d("NavigateTime", "with data: ${it.data} and bitmap: ${it.imageBitmap}")
+                        val resultUiModel = ResultScreenUiModel(it.data, it.imageBitmap!!)
+                        onProcessImageResult.invoke(resultUiModel)
                     }
                     is UploadFlowSideEffects.GetImageBitmapFromUri -> {
                         it.uri?.let {

@@ -2,6 +2,7 @@ package com.example.artinspector.utils
 
 import com.example.artinspector.domain.api.UploadApiService
 import com.example.artinspector.domain.repositories.upload.DefaultUploadImageRepository
+import com.example.artinspector.domain.repositories.upload.DummyMockedRepository
 import com.example.artinspector.domain.repositories.upload.UploadImageRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -34,5 +35,8 @@ object Injector {
 
     val uploadRepository: UploadImageRepository
         get() = DefaultUploadImageRepository()
+
+    val uploadMockedRepository: UploadImageRepository
+        get() = DummyMockedRepository()
 
 }
