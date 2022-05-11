@@ -115,7 +115,7 @@ fun UploadMainScreen(
                     .clip(shape)
                     .border(BorderStroke(2.dp, Color.Black), shape)
                     .background(Color.LightGray, shape),
-                placeholderContentScale = ContentScale.Fit
+                placeholderContentScale = ContentScale.FillBounds
             )
         }
 

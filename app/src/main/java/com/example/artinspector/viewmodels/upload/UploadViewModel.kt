@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class UploadViewModel(
-    private val repo: UploadImageRepository = Injector.uploadRepository,
+    private val repo: UploadImageRepository = Injector.uploadMockedRepository,
     private val dispatchers: DispatcherProviders = Injector.dispatchers
 ) : ViewModel() {
 

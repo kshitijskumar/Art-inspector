@@ -1,5 +1,6 @@
 package com.example.artinspector.presentation.navigation
 
+import android.net.Uri
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavArgument
 import androidx.navigation.NavType
@@ -20,6 +21,6 @@ object NavigationHelper {
 
     fun getUpdatedPathToNavigateToResultScreen(resultModel: ResultScreenUiModel): String {
         val resultModelInStringJson = Gson().toJson(resultModel) ?: ""
-        return "resultScreen/$resultModelInStringJson"
+        return "resultScreen/${Uri.encode(resultModelInStringJson)}"
     }
 }
